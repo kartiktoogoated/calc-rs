@@ -1,32 +1,83 @@
 use std::io;
 
-fn main() {
-    println!("Enter expression:");
+#[derive(Debug, Clone)]
+enum Token {
+    Num(i32),
+    Op(char),
+}
 
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-
+fn tokenize(expr: &str) -> Vec<Token> {
+    let mut tokens = Vec::new();
     let mut num = String::new();
-    let mut result = 0;
-    let mut sign = 1;
 
-    for c in input.chars() {
+    for c in expr.chars() {
         if c.is_ascii_digit() {
             num.push(c);
-        } else if c == '+' || c == '-' {
+        } else if "+-*/".contains(c) {
             if !num.is_empty() {
-                let val: i32 = num.parse().unwrap();
-                result += sign * val;
+                tokens.push(Token::Num(num.parse().unwrap()));
                 num.clear();
             }
-            sign = if c == '+' { 1 } else { -1 };
+            tokens.push(Token::Op(c));
         }
     }
 
     if !num.is_empty() {
-        let val: i32 = num.parse().unwrap();
-        result += sign * val;
+        tokens.push(Token::Num(num.parse().unwrap()));
     }
 
+    tokens
+}
+
+fn eval(tokens: Vec<Token>) -> i32 {
+    let mut temp: Vec<Token> = Vec::new();
+    let mut i = 0;
+    while i < tokens.len() {
+        match &tokens[i] {
+            Token::Num(n) => temp.push(Token::Num(*n)),
+            Token::Op(op) if *op == '*' || *op == '/' => {
+                if let Token::Num(left) = temp.pop().unwrap() {
+                    if let Token::Num(right) = tokens[i + 1] {
+                        let val = if *op == '*' {
+                            left * right
+                        } else {
+                            left / right
+                        };
+                        temp.push(Token::Num(val));
+                    }
+                }
+                i += 1;
+            }
+            Token::Op(op) => temp.push(Token::Op(*op)),
+        }
+        i += 1;
+    }
+
+    let mut result = if let Token::Num(n) = temp[0] { n } else { 0 };
+    i = 1;
+    while i < temp.len() {
+        if let Token::Op(op) = temp[i] {
+            if let Token::Num(n) = temp[i + 1] {
+                result = match op {
+                    '+' => result + n,
+                    '-' => result - n,
+                    _ => result,
+                }
+            }
+        }
+        i += 2;
+    }
+    result
+}
+
+fn main() {
+    println!("Enter an expression:");
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+
+    let tokens = tokenize(input.trim());
+    println!("Tokens: {:?}", tokens);
+
+    let result = eval(tokens);
     println!("Result: {}", result);
 }
