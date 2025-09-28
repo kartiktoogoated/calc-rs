@@ -1,9 +1,11 @@
 use std::io;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum Token {
-    Num(i32),
+    Num(f64),
     Op(char),
+    LParen,
+    RParen,
 }
 
 fn tokenize(expr: &str) -> Vec<Token> {
@@ -11,14 +13,21 @@ fn tokenize(expr: &str) -> Vec<Token> {
     let mut num = String::new();
 
     for c in expr.chars() {
-        if c.is_ascii_digit() {
+        if c.is_ascii_digit() || c == '.' {
             num.push(c);
-        } else if "+-*/".contains(c) {
+        } else {
             if !num.is_empty() {
                 tokens.push(Token::Num(num.parse().unwrap()));
                 num.clear();
             }
-            tokens.push(Token::Op(c));
+
+            match c {
+                '+' | '-' | '*' | '/' | '^' => tokens.push(Token::Op(c)),
+                '(' => tokens.push(Token::LParen),
+                ')' => tokens.push(Token::RParen),
+                ' ' => (), // ignore spaces
+                _ => panic!("Unexpected character: {}", c),
+            }
         }
     }
 
